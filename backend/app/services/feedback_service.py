@@ -21,6 +21,7 @@ async def apply_feedback(description: str, correct_hs_code: str, db):
     else:
         # 🔥 Create new entry from feedback
         memory = ProductMemory(
+            id=fp,  # primary key has no default; same scheme as memory.save_memory
             fingerprint=fp,
             normalized_name=description.lower(),
             hs_code=correct_hs_code,
