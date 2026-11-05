@@ -10,7 +10,7 @@ async def classify_with_intelligence(db, description: str):
     if memory:
         # ✅ Only trust memory if strong enough
         if memory.confidence >= 0.95 or memory.source == "human_feedback":
-            
+
             await record_hit(memory, db)
 
             return {

@@ -13,4 +13,6 @@ venv/
 *.db
 
 # Logs
-*.log
+*.log.venv/
+.pytest_cache/
+.ruff_cache/

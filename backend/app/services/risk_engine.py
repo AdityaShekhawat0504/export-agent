@@ -2,7 +2,7 @@ SANCTIONED_COUNTRIES = ["IR", "KP", "SY", "CU"]
 
 
 def evaluate_risk(destination_country: str, confidence: float):
-    
+
     # 🚫 Hard block countries
     if destination_country in SANCTIONED_COUNTRIES:
         return {
