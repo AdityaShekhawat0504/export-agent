@@ -51,3 +51,14 @@ async def test_human_feedback_memory_is_trusted(db, fake_classifier):
     assert result == {"hs_code": "8507.60", "confidence": 1.0, "source": "memory"}
     fake_classifier.assert_not_awaited()
     assert (await find_memory("lithium ion battery", db)).memory_hits == 1
+
+
+async def test_unknown_classification_is_not_saved_to_memory(db, monkeypatch):
+    monkeypatch.setattr(
+        decision_engine,
+        "classify_product",
+        AsyncMock(return_value={"hs_code": "UNKNOWN", "confidence": 0.0}),
+    )
+    result = await decision_engine.classify_with_intelligence(db, "mystery item")
+    assert result == {"hs_code": "UNKNOWN", "confidence": 0.0, "source": "ai"}
+    assert await find_memory("mystery item", db) is None

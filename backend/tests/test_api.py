@@ -83,3 +83,15 @@ async def test_list_shipments(client):
 
 async def test_invalid_payload_is_rejected(client):
     assert (await client.post("/shipments", json={"description": "x"})).status_code == 422
+
+
+async def test_unclassified_shipment_goes_to_review(client, monkeypatch):
+    monkeypatch.setattr(
+        decision_engine,
+        "classify_product",
+        AsyncMock(return_value={"hs_code": "UNKNOWN", "confidence": 0.0}),
+    )
+    body = (await client.post("/shipments", json=_shipment("Office chair"))).json()
+    assert body["status"] == "review"
+    assert body["blocked"] is False
+    assert body["decision_reason"] == "No HS classification available (ai)"
