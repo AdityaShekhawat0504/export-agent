@@ -13,8 +13,9 @@ decision: `approved`, `review`, or `blocked`.
 | Shipment service | `backend/app/services/shipment.py` | Orchestrates one shipment: classify → evaluate risk → persist |
 | Decision engine | `backend/app/services/decision_engine.py` | Chooses between memory and the AI classifier |
 | Memory | `backend/app/services/memory.py` | Stores/looks up past classifications by fingerprint (SHA-256 of the lower-cased, trimmed description) |
-| Classifier | `backend/app/services/classifier.py` | Calls OpenAI `gpt-4o-mini`, extracts an `XXXX.XX` code with a regex; falls back to fixed values without a key or on error |
-| Risk engine | `backend/app/services/risk_engine.py` | Pure function: sanctioned destination → block; confidence < 0.75 → review; otherwise approve |
+| Classifier | `backend/app/services/classifier.py` | Calls OpenAI `gpt-4o-mini`, extracts an `XXXX.XX` code with a regex; returns `UNKNOWN` at 0.0 without a key, on error, or on unparseable output |
+| Risk engine | `backend/app/services/risk_engine.py` | Pure function: sanctioned destination or strong denied-party match → block; near match, `UNKNOWN` code or confidence < 0.75 → review; otherwise approve |
+| Screening | `backend/app/services/screening.py` | Fuzzy-matches the counterparty (normalised case, punctuation, legal forms) against a denied-parties list |
 | Feedback | `backend/app/services/feedback_service.py` | Writes a human-corrected HS code into memory with confidence 1.0 |
 | Persistence | `backend/app/core/database.py`, `backend/app/models/models.py` | Async SQLAlchemy engine; tables `export_shipments`, `product_memory` |
 
@@ -68,9 +69,13 @@ shipment with the same (case/whitespace-normalised) description skips the AI cal
 - **Memory trust threshold of 0.95.** AI results are stored with confidence 0.9, which
   is below this threshold, so in practice AI results are recorded but not reused;
   only human feedback (1.0) short-circuits the AI.
-- **Graceful degradation.** With no `OPENAI_API_KEY` the classifier returns
-  `8501.10` at 0.82 (which the risk engine approves); on an API error it returns
-  `8501.10` at 0.5 (which goes to review). This keeps the service runnable offline.
+- **Fail closed, not open.** With no `OPENAI_API_KEY`, on an API error, or when no
+  code can be parsed, the classifier returns `UNKNOWN` at 0.0. The risk engine always
+  sends `UNKNOWN` to review, and it is never written to memory, so the service stays
+  runnable offline without ever auto-approving a guess.
+- **Two screening layers.** Destination country (exact list) and counterparty
+  (fuzzy match: ≥ 0.90 blocks, ≥ 0.75 goes to review). Matching uses `difflib`
+  from the standard library, so screening adds no dependency.
 - **Schema via `create_all` at startup**, no migrations. Simple for a prototype;
   schema changes require dropping tables.
 - **Async throughout** (FastAPI + async SQLAlchemy + asyncpg + `AsyncOpenAI`).
