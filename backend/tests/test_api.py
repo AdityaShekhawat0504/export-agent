@@ -95,3 +95,12 @@ async def test_unclassified_shipment_goes_to_review(client, monkeypatch):
     assert body["status"] == "review"
     assert body["blocked"] is False
     assert body["decision_reason"] == "No HS classification available (ai)"
+
+
+async def test_denied_party_is_blocked_end_to_end(client):
+    payload = _shipment()
+    payload["counterparty_name"] = "Rosoboronexport JSC"
+    body = (await client.post("/shipments", json=payload)).json()
+    assert body["status"] == "blocked"
+    assert body["blocked"] is True
+    assert body["decision_reason"] == "Denied party match: Rosoboronexport (score 1.0) (ai)"
