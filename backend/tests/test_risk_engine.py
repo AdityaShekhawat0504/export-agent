@@ -26,3 +26,16 @@ def test_high_confidence_is_approved():
         "blocked": False,
         "reason": "Compliant",
     }
+
+
+def test_unknown_hs_code_goes_to_review_even_with_high_confidence():
+    result = evaluate_risk("DE", 0.9, hs_code="UNKNOWN")
+    assert result == {
+        "status": "review",
+        "blocked": False,
+        "reason": "No HS classification available",
+    }
+
+
+def test_country_code_is_normalised():
+    assert evaluate_risk(" ir ", 1.0)["status"] == "blocked"

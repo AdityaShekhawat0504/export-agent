@@ -15,7 +15,7 @@ class ShipmentService:
         source = decision["source"]
 
         # 🔥 STEP 2: Risk evaluation (separate engine)
-        risk = evaluate_risk(data.destination_country, confidence)
+        risk = evaluate_risk(data.destination_country, confidence, hs_code=hs_code)
 
         status = risk["status"]
         blocked = risk["blocked"]

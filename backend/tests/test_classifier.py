@@ -28,8 +28,9 @@ async def test_empty_description_is_unknown(description):
     assert await classify_product(description) == {"hs_code": "UNKNOWN", "confidence": 0.0}
 
 
-async def test_without_api_key_returns_fallback():
-    assert await classify_product("electric motor") == {"hs_code": "8501.10", "confidence": 0.82}
+async def test_without_api_key_returns_unknown_not_a_guess():
+    # Offline, the agent must not invent a code that would then be auto-approved.
+    assert await classify_product("electric motor") == {"hs_code": "UNKNOWN", "confidence": 0.0}
 
 
 async def test_extracts_hs_code_from_model_output(monkeypatch):
@@ -42,9 +43,9 @@ async def test_extracts_hs_code_from_model_output(monkeypatch):
 
 async def test_unparseable_model_output_is_unknown(monkeypatch):
     _fake_openai(monkeypatch, content="I am not sure")
-    assert await classify_product("mystery item") == {"hs_code": "UNKNOWN", "confidence": 0.9}
+    assert await classify_product("mystery item") == {"hs_code": "UNKNOWN", "confidence": 0.0}
 
 
-async def test_api_error_returns_low_confidence_fallback(monkeypatch):
+async def test_api_error_returns_unknown(monkeypatch):
     _fake_openai(monkeypatch, error=RuntimeError("network down"))
-    assert await classify_product("pump") == {"hs_code": "8501.10", "confidence": 0.5}
+    assert await classify_product("pump") == {"hs_code": "UNKNOWN", "confidence": 0.0}

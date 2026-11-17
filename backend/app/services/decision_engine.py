@@ -25,13 +25,14 @@ async def classify_with_intelligence(db, description: str):
     # 🔥 2. AI classification
     result = await classify_product(description)
 
-    # 🔥 3. Save AI result to memory
-    await save_memory(
-        description,
-        result["hs_code"],
-        result["confidence"],
-        db
-    )
+    # 🔥 3. Save AI result to memory (never store a non-answer)
+    if result["hs_code"] != "UNKNOWN":
+        await save_memory(
+            description,
+            result["hs_code"],
+            result["confidence"],
+            db
+        )
 
     return {
         "hs_code": result["hs_code"],
